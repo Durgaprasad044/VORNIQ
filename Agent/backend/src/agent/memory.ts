@@ -80,3 +80,120 @@ export function formatMemories(memories: string[]): string {
   }
   return memories.map((m, i) => `${i + 1}. ${m}`).join("\n\n");
 }
+
+// --- Chat Session Management via Hindsight ---
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  memoriesUsed?: number;
+  memoriesList?: string[];
+  persona?: string;
+  timestamp: string;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  persona: string;
+}
+
+export async function saveSession(
+  bankId: string,
+  sessionId: string,
+  title: string,
+  persona: string,
+  messages: ChatMessage[]
+): Promise<void> {
+  try {
+    await ensureBank(bankId);
+    const content = `[SESSION:${sessionId}] [PERSONA:${persona}] [CREATED:${new Date().toISOString()}] ${JSON.stringify({ title, messages })}`;
+    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { content });
+  } catch (err: unknown) {
+    const axiosErr = err as AxiosError;
+    console.error(`[memory] saveSession failed: ${axiosErr.message}`);
+  }
+}
+
+export async function loadSession(
+  bankId: string,
+  sessionId: string
+): Promise<ChatMessage[] | null> {
+  try {
+    const response = await getHttp().post(
+      `/v1/default/banks/${bankId}/memories/recall`,
+      {
+        query: `SESSION ${sessionId}`,
+        types: ["world", "experience", "observation"],
+        budget: "high",
+      }
+    );
+    const memories: Array<{ text: string }> = response.data.memories || [];
+    for (const mem of memories) {
+      const match = mem.text.match(/^\[SESSION:([^\]]+)\]/);
+      if (match && match[1] === sessionId) {
+        const jsonMatch = mem.text.match(/\{[\s\S]*\}$/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return parsed.messages as ChatMessage[];
+        }
+      }
+    }
+    return null;
+  } catch (err: unknown) {
+    const axiosErr = err as AxiosError;
+    console.error(`[memory] loadSession failed: ${axiosErr.message}`);
+    return null;
+  }
+}
+
+export async function listSessions(bankId: string): Promise<ChatSession[]> {
+  try {
+    const response = await getHttp().post(
+      `/v1/default/banks/${bankId}/memories/recall`,
+      {
+        query: "conversation session history chat",
+        types: ["world", "experience", "observation"],
+        budget: "high",
+      }
+    );
+    const memories: Array<{ text: string }> = response.data.memories || [];
+    const sessions: ChatSession[] = [];
+    for (const mem of memories) {
+      const match = mem.text.match(
+        /^\[SESSION:([^\]]+)\]\s*\[PERSONA:([^\]]+)\]\s*\[CREATED:([^\]]+)\]\s*(\{[\s\S]*\})$/
+      );
+      if (match) {
+        const json = JSON.parse(match[4]);
+        sessions.push({
+          id: match[1],
+          title: json.title || "Untitled",
+          createdAt: match[3],
+          persona: match[2],
+        });
+      }
+    }
+    return sessions.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch (err: unknown) {
+    const axiosErr = err as AxiosError;
+    console.error(`[memory] listSessions failed: ${axiosErr.message}`);
+    return [];
+  }
+}
+
+export async function deleteSession(
+  bankId: string,
+  sessionId: string
+): Promise<void> {
+  try {
+    await ensureBank(bankId);
+    const content = `[DELETED:${sessionId}] Session ${sessionId} permanently deleted.`;
+    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { content });
+  } catch (err: unknown) {
+    const axiosErr = err as AxiosError;
+    console.error(`[memory] deleteSession failed: ${axiosErr.message}`);
+  }
+}
