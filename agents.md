@@ -1,283 +1,527 @@
-# agents.md — Agent Architecture & Design
+# AGENT 6 IMPLEMENTATION PROMPT — Report Generation Agent
 
-## Overview
+The project architecture has already been defined in **MASTER_ARCHITECTURE.md**.
 
-MemoryAgent is a full-stack TypeScript application.
-- **Frontend:** Next.js 14 App Router — ChatGPT-style UI
-- **Backend:** Express.js — agent logic, Groq LLM, Hindsight memory
-- **Memory:** Hindsight local server — TEMPR retrieval across sessions
+Read and strictly follow every rule in that document.
 
-Every message follows: Recall → Respond → Retain. Reflect runs at session end.
+Do NOT modify the architecture.
 
----
+Do NOT rename folders.
 
-## System Architecture
+Do NOT modify shared schemas unless absolutely necessary.
 
-```
-┌──────────────────────────────────────────────┐
-│           FRONTEND (Next.js :3000)           │
-│                                              │
-│  app/page.tsx                                │
-│    └── <ChatWindow />                        │
-│          ├── <Sidebar />      (session info) │
-│          ├── <MessageBubble /> (per message) │
-│          └── <InputBar />     (send message) │
-│                                              │
-│  lib/api.ts                                  │
-│    sendMessage(message, bankId)              │
-│    endSession(bankId)                        │
-│                                              │
-│  bankId stored in localStorage               │
-└────────────────┬─────────────────────────────┘
-                 │ fetch (JSON)
-                 ▼
-┌──────────────────────────────────────────────┐
-│           BACKEND (Express :4000)            │
-│                                              │
-│  src/index.ts         — app bootstrap, CORS  │
-│  src/routes/chat.ts                          │
-│    POST /chat         — main message handler │
-│    POST /reflect      — session consolidation│
-│    GET  /health       — liveness check       │
-│                                              │
-│  src/agent/core.ts                           │
-│    chat()     — recall → LLM → retain        │
-│    endSession()— reflect()                   │
-│                                              │
-│  src/agent/memory.ts                         │
-│    retain()   — store fact in Hindsight      │
-│    recall()   — TEMPR search                 │
-│    reflect()  — consolidate observations     │
-│                                              │
-│  src/config/settings.ts                      │
-│    loads GROQ_API_KEY, HINDSIGHT_BASE_URL    │
-└────────────────┬─────────────────────────────┘
-                 │ HTTP REST
-                 ▼
-┌──────────────────────────────────────────────┐
-│        HINDSIGHT SERVER (:8888)              │
-│   hindsight-api (Python, run separately)     │
-│   TEMPR: Semantic + BM25 + Graph + Temporal  │
-└──────────────────────────────────────────────┘
-                 │
-                 ▼
-┌──────────────────────────────────────────────┐
-│           GROQ API (cloud)                   │
-│   Model: llama-3.3-70b-versatile             │
-│   Free tier — no cost                        │
-└──────────────────────────────────────────────┘
-```
+Treat MASTER_ARCHITECTURE.md as the project's single source of truth.
 
 ---
 
-## Agent Flow (Per Message)
+# YOUR TASK
 
-```
-User types in InputBar
-        │
-        ▼
-lib/api.ts → POST /chat { message, bankId }
-        │
-        ▼
-routes/chat.ts → agent/core.ts chat()
-        │
-        ├── memory.recall(bankId, message)
-        │     └── GET hindsight :8888/recall
-        │         Returns: relevant past memories
-        │
-        ├── buildSystemPrompt(memories)
-        │     └── Injects recalled context into system prompt
-        │
-        ├── Groq.chat.completions.create()
-        │     model: llama-3.3-70b-versatile
-        │     messages: [system, ...history, user]
-        │
-        ├── memory.retain(bankId, exchange)
-        │     └── POST hindsight :8888/retain
-        │         Only if message > 4 words (filler filter)
-        │
-        └── return { response, memoriesUsed }
-                │
-                ▼
-        Next.js renders MessageBubble
-```
+Implement **Agent 6 — Financial Report Generation Agent**.
+
+This agent is responsible for transforming structured financial intelligence into professional business reports.
+
+This agent must NEVER
+
+* Parse documents
+* Perform financial analysis
+* Forecast values
+* Calculate risks
+* Store memory
+
+Its ONLY responsibility is report generation.
 
 ---
 
-## Backend Components
+# LOCATION
 
-### `src/index.ts`
-Express bootstrap. Enables CORS for `localhost:3000`. Mounts `/chat`, `/reflect`, `/health`.
+Implement only inside
 
-### `src/routes/chat.ts`
-```typescript
-router.post("/chat", async (req, res) => {
-  const { message, bankId, history } = req.body;
-  const result = await chat(message, bankId, history);
-  res.json(result);
-});
+backend/
 
-router.post("/reflect", async (req, res) => {
-  const { bankId } = req.body;
-  await endSession(bankId);
-  res.json({ status: "ok" });
-});
-```
+agents/
 
-### `src/agent/core.ts`
-```typescript
-export async function chat(message: string, bankId: string, history: Message[]) {
-  // 1. Recall
-  const memories = await recall(bankId, message);
-  const context = formatMemories(memories);
+financial/
 
-  // 2. Build prompt
-  const system = buildSystemPrompt(context);
+report/
 
-  // 3. Groq LLM
-  const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [{ role: "system", content: system }, ...history,
-               { role: "user", content: message }],
-  });
-  const response = completion.choices[0].message.content;
-
-  // 4. Retain
-  if (shouldRetain(message)) {
-    await retain(bankId, `User: ${message}\nAgent: ${response}`);
-  }
-
-  return { response, memoriesUsed: memories.length };
-}
-```
-
-### `src/agent/memory.ts`
-Hindsight REST client. Three functions: `retain`, `recall`, `reflect`. Each wrapped in try/catch.
-
-### `src/config/settings.ts`
-```typescript
-import dotenv from "dotenv";
-dotenv.config();
-
-export const GROQ_API_KEY = process.env.GROQ_API_KEY!;
-export const HINDSIGHT_BASE_URL = process.env.HINDSIGHT_BASE_URL || "http://localhost:8888";
-export const HINDSIGHT_BANK_ID = process.env.HINDSIGHT_BANK_ID || "memoryagent-bank";
-export const PORT = process.env.PORT || 4000;
-```
+Follow the architecture exactly.
 
 ---
 
-## Frontend Components
+# PRIMARY RESPONSIBILITIES
 
-### `app/page.tsx`
-Root page. Renders `<ChatWindow />`.
+Generate
 
-### `components/ChatWindow.tsx`
-Main layout. Holds message state, calls `lib/api.ts`, passes data down to children.
+Executive Summary
 
-### `components/MessageBubble.tsx`
-Renders one message. User messages right-aligned, agent messages left-aligned with avatar.
+Financial Analysis Report
 
-### `components/InputBar.tsx`
-Textarea + send button. Submits on Enter (Shift+Enter for newline). Disabled while waiting for response.
+Board Report
 
-### `components/Sidebar.tsx`
-- Shows current session bank ID
-- "New Chat" button — clears message history (memory persists in Hindsight)
-- "End Session" button — calls `POST /reflect` to consolidate memories
+Investor Report
 
-### `lib/api.ts`
-```typescript
-export async function sendMessage(message: string, bankId: string, history: Message[]) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, bankId, history }),
-  });
-  return res.json();
-}
+Risk Report
 
-export async function endSession(bankId: string) {
-  await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/reflect`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bankId }),
-  });
-}
-```
+Forecast Report
+
+Company Health Report
+
+Investment Summary
+
+Decision Support Report
+
+Audit Summary
+
+Portfolio Report
+
+Business Intelligence Report
+
+Markdown Reports
+
+JSON Reports
+
+HTML Reports
+
+PDF-ready content
 
 ---
 
-## Dependencies
+# INPUT
 
-### Backend (backend/package.json)
-```json
-{
-  "dependencies": {
-    "express": "^4.18.2",
-    "groq-sdk": "^0.3.0",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "axios": "^1.6.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17",
-    "@types/node": "^20.10.0",
-    "ts-node-dev": "^2.0.0"
-  }
-}
-```
+Consume ONLY
 
-### Frontend (frontend/package.json)
-```json
-{
-  "dependencies": {
-    "next": "14.0.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/react": "^18.2.0",
-    "@types/node": "^20.10.0",
-    "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32"
-  }
-}
-```
+FinancialDocument
+
+FinancialAnalysis
+
+FinancialForecast
+
+FinancialRiskAssessment
+
+Never parse PDFs.
+
+Never duplicate previous agents.
 
 ---
 
-## Memory Bank Design
+# OUTPUT
 
-### Bank ID Strategy
-Generated on first frontend visit using `crypto.randomUUID()`, stored in `localStorage`.
-Same browser = same bank = same memories across sessions.
+Return
 
-### System Prompt
-```typescript
-const buildSystemPrompt = (memoryContext: string) => `
-You are a personal AI assistant with persistent memory.
-You remember everything this user has told you across all sessions.
+FinancialReport
 
-What you remember about this user:
-${memoryContext}
+Containing
 
-Rules:
-- Use memory naturally, never mention you are recalling it
-- Never ask the user to repeat themselves
-- Be concise, direct, and helpful
-`;
-```
+Executive Summary
 
-### Filler Filter
-```typescript
-const shouldRetain = (message: string): boolean => {
-  const filler = new Set(["ok", "okay", "thanks", "sure", "yes", "no", "got it"]);
-  const words = message.trim().toLowerCase().split(" ");
-  return words.length > 4 && !filler.has(message.trim().toLowerCase());
-};
-```
+Business Overview
+
+Financial Highlights
+
+KPI Summary
+
+Forecast Summary
+
+Risk Summary
+
+Recommendations
+
+Appendix
+
+Metadata
+
+Confidence Score
+
+Warnings
+
+---
+
+# REPORT TYPES
+
+Support
+
+Executive
+
+Board
+
+Investor
+
+Management
+
+Operations
+
+Compliance
+
+Risk
+
+Forecast
+
+Audit
+
+Custom
+
+Everything configurable.
+
+---
+
+# REPORT SECTIONS
+
+Support dynamic sections.
+
+Examples
+
+Cover Page
+
+Company Information
+
+Executive Summary
+
+Key Metrics
+
+Financial Statements
+
+KPI Analysis
+
+Trend Analysis
+
+Forecast
+
+Risk Assessment
+
+Recommendations
+
+Appendix
+
+Footer
+
+Users should be able to enable or disable sections via configuration.
+
+---
+
+# FORMATTING ENGINE
+
+Create independent builders
+
+Markdown Builder
+
+HTML Builder
+
+JSON Builder
+
+PDF Content Builder
+
+Executive Builder
+
+Board Builder
+
+Each builder must be independent.
+
+---
+
+# TEMPLATE ENGINE
+
+Load templates dynamically.
+
+Do NOT hardcode report layouts.
+
+Templates should live in
+
+shared/prompts/
+
+or
+
+shared/resources/
+
+Allow new templates without modifying code.
+
+---
+
+# NARRATIVE ENGINE
+
+Generate professional business language.
+
+Examples
+
+Executive Summary
+
+Financial Highlights
+
+Key Risks
+
+Strategic Recommendations
+
+Future Outlook
+
+Never hallucinate.
+
+Only describe supported data.
+
+---
+
+# RECOMMENDATIONS
+
+Merge recommendations from
+
+Financial Analyst
+
+Forecast
+
+Risk
+
+Deduplicate
+
+Rank by priority
+
+Generate a final action plan.
+
+---
+
+# REPORT METADATA
+
+Include
+
+Generated Time
+
+Agent Versions
+
+Source Agents
+
+Confidence
+
+Processing Time
+
+Report Type
+
+Report Version
+
+---
+
+# SERVICES
+
+Create
+
+Report Service
+
+Template Service
+
+Narrative Service
+
+Formatting Service
+
+Recommendation Aggregator
+
+Section Builder
+
+Business logic must remain inside services.
+
+---
+
+# CONFIGURATION
+
+Everything configurable.
+
+Load dynamically
+
+Report templates
+
+Report sections
+
+Formatting
+
+Languages
+
+Branding
+
+Headers
+
+Footers
+
+Recommendation priorities
+
+No hardcoding.
+
+---
+
+# LLM
+
+Use prompts stored inside
+
+shared/prompts/
+
+Never embed prompts inside Python.
+
+---
+
+# VALIDATION
+
+Validate
+
+Missing analysis
+
+Missing forecast
+
+Missing risks
+
+Missing financial document
+
+Invalid report template
+
+Return warnings.
+
+Never fail silently.
+
+---
+
+# LOGGING
+
+Log
+
+Report generation started
+
+Template selected
+
+Sections included
+
+Execution time
+
+Warnings
+
+Errors
+
+Confidence
+
+Never log confidential financial values.
+
+---
+
+# ERROR HANDLING
+
+Handle
+
+Missing inputs
+
+Template failure
+
+Formatting failure
+
+Large reports
+
+Configuration errors
+
+Return structured exceptions.
+
+---
+
+# TESTING
+
+Generate tests for
+
+Report generation
+
+Template engine
+
+Narrative generation
+
+Section builder
+
+Formatting engine
+
+Recommendation aggregation
+
+Schemas
+
+API
+
+---
+
+# DOCUMENTATION
+
+Generate
+
+README
+
+Architecture
+
+Report Flow
+
+Template Guide
+
+Configuration Guide
+
+API Examples
+
+---
+
+# CODING RULES
+
+Python 3.12
+
+FastAPI
+
+Pydantic v2
+
+Async
+
+Dependency Injection
+
+SOLID
+
+DRY
+
+Type Hints
+
+Reusable Services
+
+No Magic Numbers
+
+No Placeholder Code
+
+No Mock Financial Data
+
+No Hardcoded Templates
+
+No Hardcoded Text
+
+---
+
+# IMPLEMENTATION ORDER
+
+Generate exactly one file per response.
+
+Follow this order.
+
+1. Folder verification
+
+2. report_schema.py
+
+3. template_schema.py
+
+4. section_schema.py
+
+5. report_service.py
+
+6. template_service.py
+
+7. narrative_service.py
+
+8. formatting_service.py
+
+9. recommendation_aggregator.py
+
+10. section_builder.py
+
+11. report_agent.py
+
+12. report_routes.py
+
+13. tests
+
+14. README
+
+Stop after every file.
+
+Wait for my approval before generating the next one.
+
+Never generate multiple files in one response.
+
+Maintain complete compatibility with Parser Agent, Analyst Agent, Forecast Agent, Risk Agent, Memory Agent, Runtime Agent, and Orchestrator Agent.

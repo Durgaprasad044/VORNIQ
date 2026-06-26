@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "VORNIQ Memory Agent (Agent 7)",
+    "description": "Comprehensive Postman collection testing the Memory Agent.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Happy Path",
+      "item": [
+        {
+          "name": "Store Memory (Metric)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_id\": \"AAPL\",\n  \"memory_type\": \"metric\",\n  \"metadata\": {\n    \"revenue\": 1000,\n    \"period\": \"2024-Q1\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/store",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "store"]
+            }
+          }
+        },
+        {
+          "name": "Query Memory (Filtered)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_id\": \"AAPL\",\n  \"memory_type\": \"metric\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "query"]
+            }
+          }
+        },
+        {
+          "name": "Delete Memory",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"record_id\": \"REPLACE_WITH_UUID\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/delete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "delete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid Inputs & Edge Cases",
+      "item": [
+        {
+          "name": "Missing Required Field (entity_id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memory_type\": \"metric\",\n  \"metadata\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/store",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "store"]
+            }
+          }
+        },
+        {
+          "name": "Large Payload (Stress)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_id\": \"MSFT\",\n  \"memory_type\": \"document_dump\",\n  \"metadata\": {\n    \"payload\": \"LARGE_STRING_REPRESENTING_10MB\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/store",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "store"]
+            }
+          }
+        },
+        {
+          "name": "Malformed JSON Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_id\": \"AAPL\",\n  \"memory_type\": \"metric\",\n  \"metadata\": { INVALID }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/store",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "store"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Get Health Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/memory/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "memory", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

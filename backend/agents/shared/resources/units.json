@@ -1,0 +1,33 @@
+{
+  "units": {
+    "ones": {
+      "aliases": ["ones", "units", "actual"],
+      "multiplier": 1
+    },
+    "thousands": {
+      "aliases": ["thousands", "k", "000s", "in thousands", "'000", "000's"],
+      "multiplier": 1000
+    },
+    "lakhs": {
+      "aliases": ["lakhs", "lacs", "lac", "lakh", "in lakhs"],
+      "multiplier": 100000
+    },
+    "millions": {
+      "aliases": ["millions", "m", "mn", "mil", "mm", "in millions"],
+      "multiplier": 1000000
+    },
+    "crores": {
+      "aliases": ["crores", "crore", "cr", "crs", "in crores"],
+      "multiplier": 10000000
+    },
+    "billions": {
+      "aliases": ["billions", "b", "bn", "bil", "in billions"],
+      "multiplier": 1000000000
+    },
+    "trillions": {
+      "aliases": ["trillions", "t", "tn", "tril", "in trillions"],
+      "multiplier": 1000000000000
+    }
+  },
+  "default_unit": "ones"
+}

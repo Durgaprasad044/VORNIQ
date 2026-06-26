@@ -1,0 +1,39 @@
+{
+  "small_company": {
+    "entity_id": "TECH_STARTUP_001",
+    "memory_type": "metric",
+    "metadata": {
+      "revenue": 500000,
+      "headcount": 15,
+      "period": "2024-Q1"
+    }
+  },
+  "medium_company": {
+    "entity_id": "GROWTH_CORP_002",
+    "memory_type": "document",
+    "metadata": {
+      "document_id": "10Q_2024",
+      "summary": "Continued growth in core markets. Debt structured."
+    }
+  },
+  "large_enterprise": {
+    "entity_id": "GLOBAL_MEGA_003",
+    "memory_type": "relationship",
+    "metadata": {
+      "target_entity": "SUPPLIER_004",
+      "relationship_type": "exclusive_vendor",
+      "annual_spend": 50000000
+    }
+  },
+  "missing_fields": {
+    "memory_type": "metric",
+    "metadata": {}
+  },
+  "invalid_data": {
+    "entity_id": 12345,
+    "memory_type": null,
+    "metadata": "Not an object"
+  },
+  "empty_request": {},
+  "malformed_request": "{\n  \"entity_id\": \"AAPL\",\n  \"memory_type\": \"metric\"\n  \"metadata\": { INVALID }\n}"
+}

@@ -1,0 +1,108 @@
+{
+  "rules": [
+    {
+      "name": "balance_sheet_equation",
+      "description": "Total Assets must equal Total Liabilities plus Total Equity",
+      "equation": {
+        "left": ["total_assets"],
+        "operator": "equals",
+        "right": ["total_liabilities", "total_equity"],
+        "right_operation": "sum"
+      },
+      "statement_type": "balance_sheet",
+      "severity": "error",
+      "tolerance_percent": 1.0
+    },
+    {
+      "name": "gross_profit_equation",
+      "description": "Gross Profit must equal Revenue minus Cost of Goods Sold",
+      "equation": {
+        "left": ["gross_profit"],
+        "operator": "equals",
+        "right": ["revenue", "cost_of_goods_sold"],
+        "right_operation": "subtract"
+      },
+      "statement_type": "income_statement",
+      "severity": "warning",
+      "tolerance_percent": 1.0
+    },
+    {
+      "name": "operating_income_equation",
+      "description": "Operating Income must equal Gross Profit minus Operating Expenses",
+      "equation": {
+        "left": ["operating_income"],
+        "operator": "equals",
+        "right": ["gross_profit", "operating_expenses"],
+        "right_operation": "subtract"
+      },
+      "statement_type": "income_statement",
+      "severity": "warning",
+      "tolerance_percent": 2.0
+    },
+    {
+      "name": "net_income_equation",
+      "description": "Net Income must equal Income Before Tax minus Income Tax",
+      "equation": {
+        "left": ["net_income"],
+        "operator": "equals",
+        "right": ["income_before_tax", "income_tax"],
+        "right_operation": "subtract"
+      },
+      "statement_type": "income_statement",
+      "severity": "warning",
+      "tolerance_percent": 2.0
+    },
+    {
+      "name": "free_cash_flow_equation",
+      "description": "Free Cash Flow must equal Operating Cash Flow minus Capital Expenditure",
+      "equation": {
+        "left": ["free_cash_flow"],
+        "operator": "equals",
+        "right": ["operating_cash_flow", "capital_expenditure"],
+        "right_operation": "subtract"
+      },
+      "statement_type": "cash_flow",
+      "severity": "warning",
+      "tolerance_percent": 2.0
+    },
+    {
+      "name": "net_change_in_cash_equation",
+      "description": "Net Change in Cash must equal Operating + Investing + Financing cash flows",
+      "equation": {
+        "left": ["net_change_in_cash"],
+        "operator": "equals",
+        "right": ["operating_cash_flow", "investing_cash_flow", "financing_cash_flow"],
+        "right_operation": "sum"
+      },
+      "statement_type": "cash_flow",
+      "severity": "warning",
+      "tolerance_percent": 2.0
+    },
+    {
+      "name": "current_assets_sum",
+      "description": "Total Assets should be greater than or equal to Current Assets",
+      "equation": {
+        "left": ["total_assets"],
+        "operator": "greater_than_or_equal",
+        "right": ["current_assets"],
+        "right_operation": "identity"
+      },
+      "statement_type": "balance_sheet",
+      "severity": "warning",
+      "tolerance_percent": 0.0
+    },
+    {
+      "name": "current_liabilities_sum",
+      "description": "Total Liabilities should be greater than or equal to Current Liabilities",
+      "equation": {
+        "left": ["total_liabilities"],
+        "operator": "greater_than_or_equal",
+        "right": ["current_liabilities"],
+        "right_operation": "identity"
+      },
+      "statement_type": "balance_sheet",
+      "severity": "warning",
+      "tolerance_percent": 0.0
+    }
+  ]
+}

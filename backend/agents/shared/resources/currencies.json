@@ -1,0 +1,47 @@
+{
+  "currencies": {
+    "USD": {
+      "name": "United States Dollar",
+      "symbol": "$",
+      "aliases": ["usd", "us dollar", "us dollars", "dollar", "dollars", "$"],
+      "decimal_separator": ".",
+      "thousands_separator": ","
+    },
+    "EUR": {
+      "name": "Euro",
+      "symbol": "€",
+      "aliases": ["eur", "euro", "euros", "€"],
+      "decimal_separator": ",",
+      "thousands_separator": "."
+    },
+    "GBP": {
+      "name": "British Pound Sterling",
+      "symbol": "£",
+      "aliases": ["gbp", "pound", "pounds", "sterling", "british pound", "£"],
+      "decimal_separator": ".",
+      "thousands_separator": ","
+    },
+    "INR": {
+      "name": "Indian Rupee",
+      "symbol": "₹",
+      "aliases": ["inr", "rupee", "rupees", "indian rupee", "rs", "rs.", "₹"],
+      "decimal_separator": ".",
+      "thousands_separator": ","
+    },
+    "JPY": {
+      "name": "Japanese Yen",
+      "symbol": "¥",
+      "aliases": ["jpy", "yen", "japanese yen", "¥"],
+      "decimal_separator": ".",
+      "thousands_separator": ","
+    },
+    "CNY": {
+      "name": "Chinese Yuan",
+      "symbol": "¥",
+      "aliases": ["cny", "yuan", "rmb", "chinese yuan", "renminbi"],
+      "decimal_separator": ".",
+      "thousands_separator": ","
+    }
+  },
+  "default_currency": "USD"
+}
