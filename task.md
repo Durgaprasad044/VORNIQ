@@ -3,10 +3,11 @@ Agent/
 │   ├── src/
 │   │   ├── index.ts                # Express app entry point
 │   │   ├── routes/
-│   │   │   └── chat.ts             # POST /chat, POST /reflect, GET /health
+│   │   │   └── chat.ts             # POST /chat, POST /reflect, GET /health        
 │   │   ├── agent/
-│   │   │   ├── core.ts             # Recall → LLM → Retain → Reflect logic
-│   │   │   └── memory.ts           # Hindsight client wrapper
+│   │   │   ├── core.ts              # Recall → LLM → Retain → Reflect logic
+│   │   │   ├── memory.ts            # Hindsight client wrapper
+│   │   │   └── personas.ts        ← NEW: all 5 persona prompts
 │   │   └── config/
 │   │       └── settings.ts         # Loads env vars
 │   ├── .env.example

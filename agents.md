@@ -2,70 +2,203 @@
 
 ## Overview
 
-MemoryAgent is a full-stack TypeScript application.
-- **Frontend:** Next.js 14 App Router — ChatGPT-style UI
-- **Backend:** Express.js — agent logic, Groq LLM, Hindsight memory
-- **Memory:** Hindsight local server — TEMPR retrieval across sessions
+FinSight is a multi-persona personal finance intelligence agent.
+Five specialized expert personas share a single Hindsight memory bank per user.
+Every persona knows everything the others learned. One financial profile. Five expert views.
 
-Every message follows: Recall → Respond → Retain. Reflect runs at session end.
+Stack: Next.js 14 → Express → Groq (qwen/qwen3-32b) → Hindsight (TEMPR memory).
+
+---
+
+## The 5 Personas
+
+All personas are defined in `backend/src/agent/personas.ts`.
+
+### 📒 Dana — Bookkeeper & Controller
+**Focus:** Month-end close, reconciliations, GAAP compliance, internal controls, audit readiness.
+**Remembers:** Chart of accounts structure, close schedule, recurring reconciliation issues, audit findings.
+**Retains:** Any mention of transactions, reconciliation gaps, close deadlines, accounting software in use.
+
+```typescript
+DANA: `You are Dana, a Controller with 13+ years of experience.
+You've closed books for 150+ consecutive months without missing a deadline.
+You believe accounting is the language of business — if the books are wrong,
+every decision built on them is wrong.
+
+Your rules:
+- GAAP compliance is non-negotiable
+- Reconcile everything, every month
+- Segregation of duties is mandatory
+- Journal entries require documentation
+- Audit readiness is a daily practice
+
+What you remember about this user's financial situation:
+{memoryContext}
+
+Give precise, factual answers. Flag issues early. Explain variances proactively.`
+```
+
+### 📊 Morgan — Financial Analyst
+**Focus:** Financial modeling, DCF, scenario analysis, comparable analysis, investment valuation.
+**Remembers:** Business financials, revenue model, cost structure, capital requirements, valuation assumptions.
+**Retains:** Any mention of revenue, margins, EBITDA, cash flow, growth rates, funding, valuation.
+
+```typescript
+MORGAN: `You are Morgan, a Financial Analyst with 12+ years across investment banking and FP&A.
+You think in cash flows, not revenue. Revenue is vanity, profit is sanity, cash flow is reality.
+You translate complex financial data into clear narratives that drive decisions.
+
+Your rules:
+- State assumptions before conclusions
+- Always build scenario analysis (base / upside / downside)
+- Separate facts from projections — never blend without flagging
+- Sensitivity-test every recommendation
+- Never give false confidence with false precision
+
+What you remember about this user's financial situation:
+{memoryContext}
+
+Lead with the "so what." Quantify everything. Flag risks proactively.`
+```
+
+### 📈 Riley — FP&A Analyst
+**Focus:** Budgeting, variance analysis, rolling forecasts, annual operating plans, headcount planning.
+**Remembers:** Budget targets, historical variances, forecast assumptions, department spend patterns.
+**Retains:** Any mention of budget, forecast, headcount, variance, operating plan, cost center.
+
+```typescript
+RILEY: `You are Riley, an FP&A Analyst with 11+ years across SaaS and manufacturing.
+FP&A is not accounting's sequel — it's strategy's translator.
+Your job isn't to report what happened. It's to explain why, predict what's next,
+and recommend what to do about it.
+
+Your rules:
+- Tie every budget to a business driver, not prior year spend
+- Own forecast accuracy — track and improve it
+- Variance analysis must explain the future, not just the past
+- Make trade-offs visible — resources are finite
+- Partner, don't police
+
+What you remember about this user's financial situation:
+{memoryContext}
+
+Be the translator. Make variances actionable. Challenge with data.`
+```
+
+### 🔍 Quinn — Investment Researcher
+**Focus:** Due diligence, portfolio analysis, equity research, risk assessment, asset valuation.
+**Remembers:** Investment portfolio, risk appetite, investment horizon, thesis for each position, watchlist.
+**Retains:** Any mention of investment, portfolio, stocks, risk, returns, due diligence, valuation multiples.
+
+```typescript
+QUINN: `You are Quinn, an Investment Researcher with 14+ years on the buy-side.
+You believe the best investments are found where rigorous analysis meets variant perception.
+If your thesis matches consensus, you don't have edge — you have company.
+
+Your rules:
+- Separate thesis from narrative — compelling stories aren't investment theses
+- Always present both sides — bull and bear equally rigorous
+- Cite primary sources, not blog posts
+- Quantify the downside — "it could go down" is not a risk assessment
+- Define thesis breakers — specific triggers that would invalidate the position
+
+What you remember about this user's financial situation:
+{memoryContext}
+
+Lead with the variant view. Be specific about conviction. Quantify the asymmetry.`
+```
+
+### 🏛️ Cassandra — Tax Strategist
+**Focus:** Tax optimization, multi-jurisdiction compliance, transfer pricing, entity structuring.
+**Remembers:** Entity structure, filing jurisdictions, existing tax positions, elections made, credits claimed.
+**Retains:** Any mention of tax, deductions, credits, income, entity type, jurisdiction, IRS, filing.
+
+```typescript
+CASSANDRA: `You are Cassandra, a Tax Strategist with 15+ years across Big Four and corporate tax.
+You think in after-tax returns. Tax isn't an afterthought — it's a strategic lever.
+You see tax implications of business decisions before they happen.
+
+Your rules:
+- Compliance is non-negotiable — optimize within the law
+- Document every position
+- Quantify risk on uncertain positions
+- Consider all jurisdictions — never shift risk, eliminate it
+- Connect tax to business decisions before execution
+
+What you remember about this user's financial situation:
+{memoryContext}
+
+Translate tax into business impact. Quantify risk alongside savings. Flag deadlines proactively.`
+```
 
 ---
 
 ## System Architecture
 
 ```
-┌──────────────────────────────────────────────┐
-│           FRONTEND (Next.js :3000)           │
-│                                              │
-│  app/page.tsx                                │
-│    └── <ChatWindow />                        │
-│          ├── <Sidebar />      (session info) │
-│          ├── <MessageBubble /> (per message) │
-│          └── <InputBar />     (send message) │
-│                                              │
-│  lib/api.ts                                  │
-│    sendMessage(message, bankId)              │
-│    endSession(bankId)                        │
-│                                              │
-│  bankId stored in localStorage               │
-└────────────────┬─────────────────────────────┘
-                 │ fetch (JSON)
+┌──────────────────────────────────────────────────┐
+│           FRONTEND (Next.js :3000)               │
+│                                                  │
+│  app/page.tsx → <ChatWindow />                   │
+│    ├── <Sidebar />                               │
+│    │     ├── Persona selector (5 options)        │
+│    │     ├── "New Chat" button                   │
+│    │     └── "End Session" button                │
+│    ├── <MessageBubble />  per message            │
+│    └── <InputBar />       send message           │
+│                                                  │
+│  lib/api.ts                                      │
+│    sendMessage(message, bankId, persona, history)│
+│    endSession(bankId)                            │
+│                                                  │
+│  bankId in localStorage                          │
+│  selectedPersona in component state              │
+└────────────────┬─────────────────────────────────┘
+                 │ fetch JSON
                  ▼
-┌──────────────────────────────────────────────┐
-│           BACKEND (Express :4000)            │
-│                                              │
-│  src/index.ts         — app bootstrap, CORS  │
-│  src/routes/chat.ts                          │
-│    POST /chat         — main message handler │
-│    POST /reflect      — session consolidation│
-│    GET  /health       — liveness check       │
-│                                              │
-│  src/agent/core.ts                           │
-│    chat()     — recall → LLM → retain        │
-│    endSession()— reflect()                   │
-│                                              │
-│  src/agent/memory.ts                         │
-│    retain()   — store fact in Hindsight      │
-│    recall()   — TEMPR search                 │
-│    reflect()  — consolidate observations     │
-│                                              │
-│  src/config/settings.ts                      │
-│    loads GROQ_API_KEY, HINDSIGHT_BASE_URL    │
-└────────────────┬─────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│           BACKEND (Express :4000)                │
+│                                                  │
+│  src/index.ts         — app bootstrap, CORS      │
+│  src/routes/chat.ts                              │
+│    POST /chat         — main handler             │
+│    POST /reflect      — session consolidation    │
+│    GET  /health       — liveness                 │
+│                                                  │
+│  src/agent/core.ts                               │
+│    chat(message, bankId, persona, history)       │
+│      1. recall(bankId, message)  ← Hindsight    │
+│      2. getPersonaPrompt(persona, memories)      │
+│      3. Groq qwen/qwen3-32b completion           │
+│      4. retain(bankId, exchange) ← Hindsight    │
+│      5. return { response, memoriesUsed }        │
+│    endSession(bankId)                            │
+│      reflect(bankId, consolidation query)        │
+│                                                  │
+│  src/agent/personas.ts                           │
+│    5 persona system prompt templates             │
+│    getPersonaPrompt(persona, memoryContext)      │
+│                                                  │
+│  src/agent/memory.ts                             │
+│    retain / recall / reflect / formatMemories   │
+│                                                  │
+│  src/config/settings.ts                          │
+└────────────────┬─────────────────────────────────┘
                  │ HTTP REST
                  ▼
-┌──────────────────────────────────────────────┐
-│        HINDSIGHT SERVER (:8888)              │
-│   hindsight-api (Python, run separately)     │
-│   TEMPR: Semantic + BM25 + Graph + Temporal  │
-└──────────────────────────────────────────────┘
-                 │
-                 ▼
-┌──────────────────────────────────────────────┐
-│           GROQ API (cloud)                   │
-│   Model: llama-3.3-70b-versatile             │
-│   Free tier — no cost                        │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│        HINDSIGHT SERVER (:8888)                  │
+│   hindsight-api (Python, run separately)         │
+│   Single bank per user                           │
+│   TEMPR: Semantic + BM25 + Graph + Temporal      │
+│                                                  │
+│   Bank mission:                                  │
+│   "I am a personal finance intelligence system.  │
+│    I remember the user's complete financial       │
+│    profile — income, debts, investments, tax      │
+│    situation, goals, and all advice given         │
+│    across every expert persona."                  │
+└──────────────────────────────────────────────────┘
 ```
 
 ---
@@ -73,144 +206,147 @@ Every message follows: Recall → Respond → Retain. Reflect runs at session en
 ## Agent Flow (Per Message)
 
 ```
-User types in InputBar
+User selects persona + types message
         │
         ▼
-lib/api.ts → POST /chat { message, bankId }
+lib/api.ts → POST /chat { message, bankId, persona, history }
         │
         ▼
-routes/chat.ts → agent/core.ts chat()
-        │
-        ├── memory.recall(bankId, message)
-        │     └── GET hindsight :8888/recall
-        │         Returns: relevant past memories
-        │
-        ├── buildSystemPrompt(memories)
-        │     └── Injects recalled context into system prompt
-        │
-        ├── Groq.chat.completions.create()
-        │     model: llama-3.3-70b-versatile
-        │     messages: [system, ...history, user]
-        │
-        ├── memory.retain(bankId, exchange)
-        │     └── POST hindsight :8888/retain
-        │         Only if message > 4 words (filler filter)
-        │
-        └── return { response, memoriesUsed }
-                │
-                ▼
-        Next.js renders MessageBubble
+core.chat()
+    │
+    ├── memory.recall(bankId, message)
+    │     TEMPR search — returns all relevant financial memories
+    │     regardless of which persona originally retained them
+    │
+    ├── personas.getPersonaPrompt(persona, formatMemories(memories))
+    │     Injects recalled memories into selected persona's system prompt
+    │
+    ├── groq.chat.completions.create()
+    │     model: qwen/qwen3-32b
+    │     messages: [{ role: "system", content: personaPrompt },
+    │                ...history,
+    │                { role: "user", content: message }]
+    │
+    ├── memory.retain(bankId, exchange)
+    │     if shouldRetain(message) — finance keyword filter
+    │     Saved with persona tag: "[DANA] User said: ... Agent said: ..."
+    │
+    └── return { response, memoriesUsed, persona }
 ```
 
 ---
 
-## Backend Components
+## Memory Design
 
-### `src/index.ts`
-Express bootstrap. Enables CORS for `localhost:3000`. Mounts `/chat`, `/reflect`, `/health`.
+### Single Bank Per User
+One Hindsight bank holds the complete financial profile regardless of which persona is active.
 
-### `src/routes/chat.ts`
+### Bank Mission
 ```typescript
-router.post("/chat", async (req, res) => {
-  const { message, bankId, history } = req.body;
-  const result = await chat(message, bankId, history);
-  res.json(result);
-});
-
-router.post("/reflect", async (req, res) => {
-  const { bankId } = req.body;
-  await endSession(bankId);
-  res.json({ status: "ok" });
-});
+const BANK_MISSION = `
+I am a personal finance intelligence system.
+I remember this user's complete financial profile:
+income, expenses, debts, investments, tax situation,
+business financials, goals, and all advice given
+across every expert (Dana, Morgan, Riley, Quinn, Cassandra).
+I never ask the user to repeat financial information.
+`;
 ```
 
-### `src/agent/core.ts`
+### What Gets Retained
+
+| Persona | Retains |
+|---------|---------|
+| Dana | Transactions, reconciliation issues, close deadlines, accounting tools |
+| Morgan | Revenue, margins, EBITDA, cash flow, growth rates, valuation |
+| Riley | Budget, forecast, headcount, variances, operating plan |
+| Quinn | Portfolio, risk appetite, investment thesis, returns, due diligence |
+| Cassandra | Tax positions, deductions, credits, entity type, jurisdictions |
+
+Retain tag format:
 ```typescript
-export async function chat(message: string, bankId: string, history: Message[]) {
-  // 1. Recall
-  const memories = await recall(bankId, message);
-  const context = formatMemories(memories);
-
-  // 2. Build prompt
-  const system = buildSystemPrompt(context);
-
-  // 3. Groq LLM
-  const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [{ role: "system", content: system }, ...history,
-               { role: "user", content: message }],
-  });
-  const response = completion.choices[0].message.content;
-
-  // 4. Retain
-  if (shouldRetain(message)) {
-    await retain(bankId, `User: ${message}\nAgent: ${response}`);
-  }
-
-  return { response, memoriesUsed: memories.length };
-}
+`[${persona.toUpperCase()}] User: ${message}\nAdvisor: ${response}`
 ```
 
-### `src/agent/memory.ts`
-Hindsight REST client. Three functions: `retain`, `recall`, `reflect`. Each wrapped in try/catch.
-
-### `src/config/settings.ts`
+### Finance Keyword Filter
 ```typescript
-import dotenv from "dotenv";
-dotenv.config();
+const FINANCIAL_KEYWORDS = [
+  // General
+  "income", "salary", "earn", "revenue", "profit", "loss",
+  "debt", "loan", "credit", "emi", "interest", "principal",
+  "invest", "portfolio", "stock", "fund", "equity", "bond",
+  "save", "goal", "budget", "expense", "spend", "cash",
+  "tax", "deduction", "credit", "filing", "irs", "gst",
+  // Accounting (Dana)
+  "reconcil", "journal", "gaap", "close", "audit", "balance sheet",
+  "accounts payable", "accounts receivable", "depreciation",
+  // Analyst (Morgan)
+  "dcf", "ebitda", "wacc", "valuation", "model", "scenario",
+  "margin", "forecast", "multiple", "comparable",
+  // FP&A (Riley)
+  "variance", "headcount", "operating plan", "aop", "reforecast",
+  "kpi", "burn", "runway",
+  // Investment (Quinn)
+  "due diligence", "thesis", "conviction", "upside", "downside",
+  "risk", "return", "irr", "moat", "catalyst",
+  // Tax (Cassandra)
+  "entity", "jurisdiction", "transfer pricing", "deferred",
+  "provision", "asc 740", "sox", "1099", "w-2"
+];
 
-export const GROQ_API_KEY = process.env.GROQ_API_KEY!;
-export const HINDSIGHT_BASE_URL = process.env.HINDSIGHT_BASE_URL || "http://localhost:8888";
-export const HINDSIGHT_BANK_ID = process.env.HINDSIGHT_BANK_ID || "memoryagent-bank";
-export const PORT = process.env.PORT || 4000;
+const shouldRetain = (message: string): boolean => {
+  const lower = message.toLowerCase();
+  return FINANCIAL_KEYWORDS.some(k => lower.includes(k))
+      || message.trim().split(" ").length > 5;
+};
+```
+
+### Reflect at Session End
+```typescript
+await reflect(bankId, `
+  Consolidate everything known about this user's complete financial profile:
+  - Income, expenses, assets, liabilities
+  - Investment portfolio and risk appetite
+  - Tax situation, entity structure, filing obligations
+  - Business financials if applicable
+  - Goals, timelines, and decisions made
+  - Key advice given by each expert persona
+`);
 ```
 
 ---
 
 ## Frontend Components
 
-### `app/page.tsx`
-Root page. Renders `<ChatWindow />`.
+### `components/Sidebar.tsx`
+- App name: FinSight
+- **Persona selector** — 5 buttons: Dana 📒, Morgan 📊, Riley 📈, Quinn 🔍, Cassandra 🏛️
+- Active persona highlighted
+- "New Chat" — clears message history, memory persists
+- "End Session" — fires POST /reflect, confirms consolidation to user
+- Shows shortened bankId
 
 ### `components/ChatWindow.tsx`
-Main layout. Holds message state, calls `lib/api.ts`, passes data down to children.
+- Holds `messages`, `history`, `selectedPersona` state
+- `bankId` from `localStorage` via `crypto.randomUUID()`
+- Shows active persona name + emoji in chat header
+- Each message tagged with which persona responded
 
 ### `components/MessageBubble.tsx`
-Renders one message. User messages right-aligned, agent messages left-aligned with avatar.
+- User right-aligned
+- Agent left-aligned with persona avatar emoji
+- Supports markdown: bold, numbered lists, tables (financial advice uses all three)
 
 ### `components/InputBar.tsx`
-Textarea + send button. Submits on Enter (Shift+Enter for newline). Disabled while waiting for response.
-
-### `components/Sidebar.tsx`
-- Shows current session bank ID
-- "New Chat" button — clears message history (memory persists in Hindsight)
-- "End Session" button — calls `POST /reflect` to consolidate memories
-
-### `lib/api.ts`
-```typescript
-export async function sendMessage(message: string, bankId: string, history: Message[]) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, bankId, history }),
-  });
-  return res.json();
-}
-
-export async function endSession(bankId: string) {
-  await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/reflect`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bankId }),
-  });
-}
-```
+- Textarea, Enter to send, Shift+Enter for newline
+- Disabled while waiting
+- Shows active persona in placeholder: "Ask Dana about your accounts..."
 
 ---
 
 ## Dependencies
 
-### Backend (backend/package.json)
+### Backend
 ```json
 {
   "dependencies": {
@@ -230,7 +366,7 @@ export async function endSession(bankId: string) {
 }
 ```
 
-### Frontend (frontend/package.json)
+### Frontend
 ```json
 {
   "dependencies": {
@@ -247,37 +383,4 @@ export async function endSession(bankId: string) {
     "postcss": "^8.4.32"
   }
 }
-```
-
----
-
-## Memory Bank Design
-
-### Bank ID Strategy
-Generated on first frontend visit using `crypto.randomUUID()`, stored in `localStorage`.
-Same browser = same bank = same memories across sessions.
-
-### System Prompt
-```typescript
-const buildSystemPrompt = (memoryContext: string) => `
-You are a personal AI assistant with persistent memory.
-You remember everything this user has told you across all sessions.
-
-What you remember about this user:
-${memoryContext}
-
-Rules:
-- Use memory naturally, never mention you are recalling it
-- Never ask the user to repeat themselves
-- Be concise, direct, and helpful
-`;
-```
-
-### Filler Filter
-```typescript
-const shouldRetain = (message: string): boolean => {
-  const filler = new Set(["ok", "okay", "thanks", "sure", "yes", "no", "got it"]);
-  const words = message.trim().toLowerCase().split(" ");
-  return words.length > 4 && !filler.has(message.trim().toLowerCase());
-};
 ```
