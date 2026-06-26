@@ -2,7 +2,7 @@
 
 ## Overview
 
-FinSight is a multi-persona personal finance intelligence agent.
+VORNIQ is a multi-persona personal finance intelligence agent.
 Five specialized expert personas share a single Hindsight memory bank per user.
 Every persona knows everything the others learned. One financial profile. Five expert views.
 
