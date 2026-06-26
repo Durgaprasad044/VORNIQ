@@ -1,8 +1,8 @@
-# 💰 FinSight — Personal Finance Intelligence Agent
+# 💰 VORNIQ — Personal Finance Intelligence Agent
 
 > Powered by [Hindsight](https://hindsight.vectorize.io/) — persistent memory for AI agents.
 
-FinSight is a web-based AI finance assistant with 5 specialized expert personas. It remembers your complete financial profile across every session — income, debts, goals, tax situation, investments, and past advice — and gets sharper the more you use it.
+Vorniq is a web-based AI finance assistant with 5 specialized expert personas. It remembers your complete financial profile across every session — income, debts, goals, tax situation, investments, and past advice — and gets sharper the more you use it.
 
 ---
 
@@ -34,7 +34,7 @@ The user selects a persona per session. Hindsight memory persists across all per
 ## Project Structure
 
 ```
-finsight/
+Vorniq/
 ├── backend/
 │   ├── src/
 │   │   ├── index.ts                  # Express app entry point
