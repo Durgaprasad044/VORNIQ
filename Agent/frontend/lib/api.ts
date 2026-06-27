@@ -21,7 +21,7 @@ export async function sendMessage(
   bankId: string,
   persona: string,
   history: { role: string; content: string }[]
-): Promise<{ response: string; memoriesUsed: number }> {
+): Promise<{ response: string; memoriesUsed: number; memoriesList?: string[] }> {
   const response = await fetch(`${BACKEND_URL}/chat`, {
     method: 'POST',
     headers: {

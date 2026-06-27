@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import CopyButton from './CopyButton';
 import { PERSONAS, PersonaId } from './Sidebar';
 
@@ -160,6 +160,80 @@ function formatMessage(content: string) {
   return elements;
 }
 
+function truncateMemory(text: string, maxLen = 80): string {
+  const cleaned = text
+    .replace(/\[.*?\]\s*/g, '')
+    .replace(/When:\s*\d{4}-\d{2}-\d{2}\s*/g, '')
+    .replace(/Involving:\s*[\w\s,()]+\s*[-|]?\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length > maxLen ? cleaned.substring(0, maxLen) + '...' : cleaned;
+}
+
+function RecalledPill({ count, memories }: { count: number; memories?: string[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const hasList = memories && memories.length > 0;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => hasList && setOpen(!open)}
+        className="text-[9px] font-semibold py-1 px-2.5 rounded-full select-none flex items-center gap-1.5 transition-colors"
+        style={{
+          backgroundColor: 'var(--accent-subtle)',
+          color: 'var(--accent)',
+          border: '0.5px solid var(--accent-border)',
+          cursor: hasList ? 'pointer' : 'default',
+        }}
+      >
+        <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+        </svg>
+        recalled: {count} {count === 1 ? 'memory' : 'memories'}
+        {hasList && (
+          <svg className={`w-2.5 h-2.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        )}
+      </button>
+
+      {open && hasList && (
+        <div
+          className="absolute bottom-full left-0 mb-2 w-80 max-h-60 overflow-y-auto rounded-xl shadow-xl z-50 py-1"
+          style={{ backgroundColor: 'var(--bg-surface)', border: '0.5px solid var(--border-primary)' }}
+        >
+          <div className="px-3 py-1.5 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
+              {count} memories recalled
+            </span>
+          </div>
+          {memories!.map((m, i) => (
+            <div
+              key={i}
+              className="px-3 py-2 border-b last:border-b-0"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span className="text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {truncateMemory(m)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
@@ -194,15 +268,10 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           {/* Under bubble metadata (recalled pill and timestamp) */}
           <div className="flex items-center gap-2 mt-1.5 px-0.5">
             {!isUser && message.memoriesUsed && message.memoriesUsed > 0 ? (
-              <span className="text-[9px] font-semibold py-1 px-2.5 rounded-full select-none flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)', border: '0.5px solid var(--accent-border)' }}>
-                <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-                </svg>
-                {message.memoriesList && message.memoriesList.length > 0 
-                  ? `recalled: ${message.memoriesList.join(' · ')}`
-                  : `recalled: ${message.memoriesUsed} memories`
-                }
-              </span>
+              <RecalledPill
+                count={message.memoriesUsed}
+                memories={message.memoriesList}
+              />
             ) : null}
             <span className="text-[10px] tracking-wide font-medium" style={{ color: 'var(--text-faint)' }}>
               {message.timestamp}

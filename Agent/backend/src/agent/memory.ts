@@ -34,7 +34,7 @@ export async function ensureBank(bankId: string): Promise<void> {
 
 export async function retain(bankId: string, content: string): Promise<void> {
   getHttp()
-    .post(`/v1/default/banks/${bankId}/memories`, { content })
+    .post(`/v1/default/banks/${bankId}/memories`, { items: [{ content }] })
     .catch((err: AxiosError) =>
       console.error(`[memory] retain failed: ${err.message}`)
     );
@@ -50,7 +50,7 @@ export async function recall(bankId: string, query: string): Promise<string[]> {
         budget: "mid",
       }
     );
-    const memories: Array<{ text: string }> = response.data.memories || [];
+    const memories: Array<{ text: string }> = response.data.results || [];
     return memories.map((m) => m.text);
   } catch (err: unknown) {
     const axiosErr = err as AxiosError;
@@ -109,7 +109,7 @@ export async function saveSession(
   try {
     await ensureBank(bankId);
     const content = `[SESSION:${sessionId}] [PERSONA:${persona}] [CREATED:${new Date().toISOString()}] ${JSON.stringify({ title, messages })}`;
-    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { content });
+    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { items: [{ content }] });
   } catch (err: unknown) {
     const axiosErr = err as AxiosError;
     console.error(`[memory] saveSession failed: ${axiosErr.message}`);
@@ -129,7 +129,7 @@ export async function loadSession(
         budget: "high",
       }
     );
-    const memories: Array<{ text: string }> = response.data.memories || [];
+    const memories: Array<{ text: string }> = response.data.results || [];
     for (const mem of memories) {
       const match = mem.text.match(/^\[SESSION:([^\]]+)\]/);
       if (match && match[1] === sessionId) {
@@ -158,7 +158,7 @@ export async function listSessions(bankId: string): Promise<ChatSession[]> {
         budget: "high",
       }
     );
-    const memories: Array<{ text: string }> = response.data.memories || [];
+    const memories: Array<{ text: string }> = response.data.results || [];
     const sessions: ChatSession[] = [];
     for (const mem of memories) {
       const match = mem.text.match(
@@ -191,7 +191,7 @@ export async function deleteSession(
   try {
     await ensureBank(bankId);
     const content = `[DELETED:${sessionId}] Session ${sessionId} permanently deleted.`;
-    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { content });
+    await getHttp().post(`/v1/default/banks/${bankId}/memories`, { items: [{ content }] });
   } catch (err: unknown) {
     const axiosErr = err as AxiosError;
     console.error(`[memory] deleteSession failed: ${axiosErr.message}`);

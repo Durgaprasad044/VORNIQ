@@ -8,6 +8,7 @@ export type HistoryMessage = { role: "user" | "assistant"; content: string };
 export type ChatResult = {
   response: string;
   memoriesUsed: number;
+  memoriesList: string[];
   persona: PersonaKey;
 };
 
@@ -80,7 +81,7 @@ export async function chat(
       retain(bankId, tag);
     }
 
-    return { response, memoriesUsed: memories.length, persona };
+    return { response, memoriesUsed: memories.length, memoriesList: memories, persona };
   } catch (err: unknown) {
     const error = err as Error;
     console.error(`[core] chat error: ${error.message}`);

@@ -74,6 +74,7 @@ chatRouter.post("/chat", async (req: Request, res: Response) => {
     res.json({
       response: result.response,
       memoriesUsed: result.memoriesUsed,
+      memoriesList: result.memoriesList,
       persona: result.persona,
     });
   } catch (err: unknown) {

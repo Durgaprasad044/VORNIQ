@@ -358,6 +358,7 @@ export default function ChatWindow() {
         role: 'assistant',
         content: data.response,
         memoriesUsed: data.memoriesUsed,
+        memoriesList: data.memoriesList,
         persona: selectedPersona,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
