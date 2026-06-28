@@ -8,15 +8,15 @@ Vorniq is a web-based AI finance assistant with 5 specialized expert personas. I
 
 ## The 5 Expert Personas
 
-| Persona | Name | Specialization |
-|---------|------|---------------|
-| 📒 Bookkeeper & Controller | Dana | Month-end close, reconciliations, GAAP compliance, internal controls |
-| 📊 Financial Analyst | Morgan | Financial modeling, DCF, scenario analysis, valuation |
-| 📈 FP&A Analyst | Riley | Budgeting, variance analysis, rolling forecasts, operating plans |
-| 🔍 Investment Researcher | Quinn | Due diligence, portfolio analysis, equity research, risk assessment |
-| 🏛️ Tax Strategist | Cassandra | Tax optimization, multi-jurisdiction compliance, transfer pricing |
+| Persona | Specialization |
+|---------|---------------|
+| 📒 Bookkeeper & Controller | Month-end close, reconciliations, GAAP compliance, internal controls |
+| 📊 Financial Analyst  | Financial modeling, DCF, scenario analysis, valuation |
+| 📈 FP&A Analyst | Budgeting, variance analysis, rolling forecasts, operating plans |
+| 🔍 Investment Researcher | Due diligence, portfolio analysis, equity research, risk assessment |
+| 🏛️ Tax Strategist | Tax optimization, multi-jurisdiction compliance, transfer pricing |
 
-The user selects a persona per session. Hindsight memory persists across all personas — Dana remembers what Quinn learned.
+The user selects a persona per session. Hindsight memory persists across all personas — Controller remembers what Investment Researcher learned.
 
 ---
 
@@ -87,8 +87,7 @@ Then inside your coding agent run:
 ```
 /hindsight-architect
 ```
-
-> 💡 Use promo code **MEMHACK625** on [Hindsight Cloud](https://ui.hindsight.vectorize.io) for $50 free credits — add in billing after registering.
+![alt text](image.png)
 
 ---
 
@@ -164,7 +163,7 @@ Next.js → POST /chat { message, bankId, persona, history }
         │       Returns: income, debts, goals, tax situation,
         │                investments, past advice across ALL personas
         ▼
-   [Persona Prompt] ── Dana / Morgan / Riley / Quinn / Cassandra
+   [Persona Prompt] ── 5 Personas
         │               system prompt injected with recalled memories
         ▼
    [Groq LLM] ── qwen/qwen3-32b
@@ -184,17 +183,17 @@ Response → Next.js → chat UI
 
 ## Example — Cross-Persona Memory
 
-**Session 1 — Quinn (Investment Researcher):**
+**Session 1 — Investment Researcher:**
 ```
 You: I have ₹5L to invest, moderate risk appetite, 5 year horizon.
-Quinn: Given your profile, here's a diversified allocation...
+Investment Researcher: Given your profile, here's a diversified allocation...
 [Retained: investable_capital=₹5L, risk=moderate, horizon=5yr]
 ```
 
-**Session 2 — Cassandra (Tax Strategist):**
+**Session 2 — Tax Strategist:**
 ```
 You: What's the most tax-efficient way to invest?
-Cassandra: Given your ₹5L corpus and 5-year horizon Quinn noted,
+Tax Strategist: Given your ₹5L corpus and 5-year horizon Quinn noted,
            ELSS funds give you Section 80C deduction up to ₹1.5L
            and qualify for LTCG exemption after 1 year.
 ```
