@@ -4,3 +4,18 @@ node_modules/
 dist/
 .DS_Store
 
+# Next.js
+.next/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Build artifacts
+test-output.css
+
+# Python
+*.pyc
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.venv/
